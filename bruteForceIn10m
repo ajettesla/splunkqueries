@@ -1,0 +1,18 @@
+index=* host=WINDOW10 (EventCode=4624 OR EventCode=4625)
+| sort 0 _time
+| bin _time span=10m
+| stats
+    count(eval(EventCode==4625))  as Failed_Logins
+    count(eval(EventCode==4624))  as Successful_Logins
+  by _time
+| sort 0 - _time
+| streamstats
+    last(Successful_Logins)        as Next_Successful
+| eval brute_force = if(
+    Successful_Logins>0
+    AND Failed_Logins>6
+    AND Next_Successful>0,
+    "yes","no"
+  )
+| where brute_force="yes" 
+| table _time, Successful_Logins, Failed_Logins, brute_force
