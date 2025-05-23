@@ -1,0 +1,7 @@
+index=* host=* ((EventCode=4624 AND EventType=0) OR (EventCode=4625 AND EventType=0))
+| bin _time span=10m 
+| stats count(eval(EventCode=4625)) as failed_attempts, count(eval(EventCode=4624)) as success_attempts by _time, host, src_ip
+| sort _time
+| streamstats window=2 current=f last(success_attempts) as next_success_attempts by host, src_ip
+| eval brute_force=if(failed_attempts>6 AND (success_attempts>0 OR next_success_attempts>0), "Possible Brute Force Attack", "Normal Activity")
+| table _time, host, src_ip, failed_attempts, success_attempts, next_success_attempts, brute_force
